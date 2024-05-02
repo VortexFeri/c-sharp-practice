@@ -92,14 +92,10 @@
             if (arr[j] < pivot)
             {
                 i++;
-                int tep = arr[i];
-                arr[i] = arr[j];
-                arr[j] = tep;
+                (arr[j], arr[i]) = (arr[i], arr[j]);
             }
         }
-        int temp = arr[i+1];
-        arr[i] = arr[high];
-        arr[high] = temp;
+        (arr[high], arr[i+1]) = (arr[i+1], arr[high]);
         return i + 1;
     }
 }
