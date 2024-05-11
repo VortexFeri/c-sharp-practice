@@ -1,4 +1,5 @@
 ﻿
+
 internal class ConsoleOptionManager
 {
     internal static int Choices(string title, bool cancelable, params string[] options)
@@ -49,5 +50,14 @@ internal class ConsoleOptionManager
         Console.CursorVisible = true;
         Console.WriteLine("\n");
         return currentSelection;
+    }
+
+    internal static void Close()
+    {
+        Console.Clear();
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Bye!");
+        Console.ResetColor();
+        Environment.Exit(0);
     }
 }

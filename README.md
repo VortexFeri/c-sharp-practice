@@ -5,3 +5,11 @@
 ### 2. Console menu
 - navigate with the arrow keys and select an option using enter
 - cancel using escape key
+- login using information in `credentials.json` file
+- menu when NOT logged in:
+  - Login
+  - Exit
+- menu when logged in:
+  - Show Users
+  - Logout
+  - Exit
