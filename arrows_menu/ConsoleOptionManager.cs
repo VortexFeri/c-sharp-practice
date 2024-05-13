@@ -1,6 +1,4 @@
-﻿
-
-internal class ConsoleOptionManager
+﻿internal class ConsoleOptionManager
 {
     internal static int Choices(string title, bool cancelable, params string[] options)
     {
