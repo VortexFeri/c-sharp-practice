@@ -26,9 +26,22 @@ namespace res
         {
             return isSuccess ? onSucces(Value!) : onFailure(Error!);
         }
+
+        public void Match(Action<Val> onSucces, Action<Err> onFailure)
+        {
+            if (isSuccess)
+                onSucces(Value!);
+            else 
+                onFailure(Error!);
+        }
+
+        public object Match(Func<Val, object> onSucces, Func<Err, object> onFailure)
+        {
+            return isSuccess ? onSucces(Value!) : onFailure(Error!);
+        }
     }
 
-    public sealed record Error<ErrorType>(ErrorType Code, string Message) where ErrorType : Enum
+    public sealed record ResultError<ErrorType>(ErrorType Code, string Message)
     {
     }
 }
