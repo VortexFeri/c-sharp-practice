@@ -1,15 +1,28 @@
-﻿namespace ticket_purchaser
+﻿using user;
+
+namespace ticket_purchaser
 {
     internal class Program
     {
         static void Main()
         {
-            ConsoleScreen homeScreen = new ConsoleScreen();
-            Command loginCommand = new Command(_ => Login);
-            Command exitCommand = new Command(_ => ConsoleOptionManager.Close());
+            ConsoleScreen homeScreen = new();
+            Command loginCommand = new(_ => Login(), "Login");
+            Command exitCommand = new Command(_ =>
+            {
+                Console.ResetColor();
+                Environment.Exit(0);
+            });
+
+            homeScreen.Title = "Welcome!";
+            homeScreen.AddCommand(ref loginCommand);
+            while (true)
+            {
+                homeScreen.Show();
+            }
         }
 
-        static user.Account? Login()
+        static Account? Login()
         {
             return null;
         }
