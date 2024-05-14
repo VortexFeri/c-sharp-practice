@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace ticket_purchaser
+﻿namespace ticket_purchaser
 {
     internal class ConsoleScreen
     {
@@ -48,16 +41,20 @@ namespace ticket_purchaser
             Console.WriteLine(Title);
         }
 
-
         public void Show()
         {
             Console.Clear();
             Console.ForegroundColor = TextColor;
             Console.WriteLine(Title);
-            if (Commands.Count == 0)
+            if (Commands.Count != 0)
             {
-                return;
+                if (ExecuteSelection())
+                    Show();
             }
+        }
+
+        private bool ExecuteSelection()
+        {
 
             int currentRow = 0;
             ConsoleKey consoleKey;
@@ -66,6 +63,10 @@ namespace ticket_purchaser
 
             do
             {
+                Console.Clear();
+                Console.ForegroundColor = TextColor;
+                Console.WriteLine(Title);
+
                 int i = 0;
                 foreach (var command in Commands)
                 {
@@ -75,7 +76,11 @@ namespace ticket_purchaser
                         Console.Write("> ");
 
                     Console.ForegroundColor = CommandColor;
-                    Console.Write(Commands.ElementAt(i).Title);
+                    if (string.IsNullOrEmpty(command.Title))
+                    {
+                        command.Title = "Command " + (i + 1);
+                    }
+                    Console.Write(command.Title);
                     Console.ResetColor();
 
                     i++;
@@ -94,7 +99,7 @@ namespace ticket_purchaser
                         break;
                     case ConsoleKey.Escape:
                         if (Cancelable)
-                            return;
+                            return false;
                         break;
                 }
             } while (consoleKey != ConsoleKey.Enter);
@@ -102,6 +107,7 @@ namespace ticket_purchaser
             Console.CursorVisible = true;
             Console.WriteLine("\n");
             Commands.ElementAt(currentRow).Execute();
+            return true;
         }
     }
 }
