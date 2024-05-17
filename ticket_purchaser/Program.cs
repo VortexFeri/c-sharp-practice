@@ -5,6 +5,7 @@ using static System.Runtime.InteropServices.JavaScript.JSType;
 //TODO: concerts
 //TODO: buy tickets
 //TODO: registration
+//TODO: remove users
 
 namespace ticket_purchaser
 {
@@ -13,18 +14,22 @@ namespace ticket_purchaser
         static Account? user;
         static readonly LoginManager loginManager = new("credentials.json");
 
+        static readonly Command loginCommand = new(_ => Login(), "Login");
+        static readonly Command exitCommand = new(_ => { Console.ResetColor(); Environment.Exit(0); }, "Exit");
+        static readonly Command seeConcertsCommand = new(_ => SeeConcerts(), "See available concerts");
+
+        private static void SeeConcerts()
+        {
+            throw new NotImplementedException();
+        }
+
         static void Main()
         {
-            ConsoleScreen homeScreen = new();
-            Command loginCommand = new(_ => Login(), "Login");
-            Command exitCommand = new(_ =>
+            ConsoleScreen homeScreen = new()
             {
-                Console.ResetColor();
-                Environment.Exit(0);
-            }, "Exit");
-
-            homeScreen.Title = "Welcome!";
-            homeScreen.Commands = [loginCommand, exitCommand];
+                Title = "Welcome!",
+                Commands = SetupCommands()
+            };
             while (true)
             {
                 homeScreen.Show();
@@ -44,7 +49,13 @@ namespace ticket_purchaser
                         user = account;
                         Console.WriteLine("Login successful!");
                         ShowLoadingDots();
-                        // Show next screen (to be implemented)
+
+                        ConsoleScreen userScreen = new()
+                        {
+                            Title = "Hi, " + username,
+                            Commands = SetupCommands()
+                        };
+                        userScreen.Show();
                     },
                     error =>
                     {
@@ -74,6 +85,17 @@ namespace ticket_purchaser
             if (string.IsNullOrEmpty(password)) return;
 
             HandleResult(loginManager.Match(username, password), username);
+        }
+
+        private static List<Command> SetupCommands()
+        {
+            if (user is null)
+                return [loginCommand, exitCommand];
+
+            if (user.Role == Role.User)
+                return [seeConcertsCommand, exitCommand];
+            else
+                return [exitCommand];
         }
 
         private static void ShowLoadingDots()

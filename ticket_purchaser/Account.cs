@@ -28,24 +28,24 @@ namespace user_namespace
 
     public class LoginManager
     {
-        private List<Account> accounts = [];
-        private readonly string filePath;
+        private List<Account> Accounts = [];
+        private readonly string FilePath;
 
         public LoginManager(string filePath)
         {
-            this.filePath = filePath;
+            FilePath = filePath;
             LoadAccounts();
         }
 
         private bool AccountExists(string username)
         {
-            return accounts.Exists(acc => acc.Name == username);
+            return Accounts.Exists(acc => acc.Name == username);
         }
 
         public Result<Account, ResultError<LoginError>> Match(string username, string password)
         {
             if (!AccountExists(username)) return new(Error.UserNotFound);
-            var account = accounts.Find(acc => acc.Name == username);
+            var account = Accounts.Find(acc => acc.Name == username);
             if (account!.CheckPassword(password))
             {
                 return new(account);
@@ -61,27 +61,27 @@ namespace user_namespace
         {
             try
             {
-                string json = File.ReadAllText(filePath);
-                accounts = JsonSerializer.Deserialize<List<Account>>(json) ?? [];
+                string json = File.ReadAllText(FilePath);
+                Accounts = JsonSerializer.Deserialize<List<Account>>(json) ?? [];
             }
             catch (FileNotFoundException)
             {
                 // If the file does not exist, initialize accounts list
-                accounts = [];
+                Accounts = [];
             }
             catch (JsonException e)
             {
                 // If there's an error parsing JSON, initialize accounts list
                 Console.WriteLine("Error loading accounts from file. Initializing empty accounts list.");
                 Console.WriteLine(e.Message);
-                accounts = [];
+                Accounts = [];
             }
         }
 
         private void SaveAccounts()
         {
-            string json = JsonSerializer.Serialize(accounts);
-            File.WriteAllText(filePath, json);
+            string json = JsonSerializer.Serialize(Accounts);
+            File.WriteAllText(FilePath, json);
         }
 
         public Result<Account, ResultError<SignUpError>> Register(string username, string password)
@@ -93,7 +93,7 @@ namespace user_namespace
             }
 
             var newAccount = new Account(username, password);
-            accounts.Add(newAccount);
+            Accounts.Add(newAccount);
             SaveAccounts();
             Console.WriteLine("Registration successful.");
             return new(newAccount);
@@ -123,7 +123,6 @@ namespace user_namespace
 
     public enum UserOperationError
     {
-        NotEnoughCredit,
         UserNotAuthorized,
         AdminNotAuthorized
     }
@@ -138,7 +137,6 @@ namespace user_namespace
         public static readonly ResultError<LoginError> InvalidPassword = new(LoginError.InvalidPassword, "The entered password is invalid.");
         public static readonly ResultError<LoginError> UserNotFound = new(LoginError.UserNotFound, "The user does not exist.");
 
-        public static readonly ResultError<UserOperationError> NotEnoughCredit = new(UserOperationError.NotEnoughCredit, "Insufficient funds.");
         public static readonly ResultError<UserOperationError> UserNotAuthorised = new(UserOperationError.UserNotAuthorized, "You are not allowed to do this operation.");
         public static readonly ResultError<UserOperationError> AdminNotAuthorised = new(UserOperationError.AdminNotAuthorized, "Only The SuperUser can do that.");
     }
