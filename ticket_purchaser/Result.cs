@@ -2,32 +2,32 @@
 
 namespace res
 {
-    public class Result<Val, Err>
+    public class Result<TVal, TErr>
     {
-        public readonly Val? Value;
-        public readonly Err? Error;
-
+        public readonly TVal? Value;
+        public readonly TErr? Error;
         private readonly bool isSuccess = false;
 
-        public Result(Val value)
+        public Result(TVal value)
         {
             isSuccess = true;
             Value = value;
             Error = default;
         }
-        public Result(Err error)
+
+        public Result(TErr error)
         {
             isSuccess = false;
             Value = default;
             Error = error;
         }
 
-        public Result<Val, Err> Match(Func<Val, Result<Val, Err>> onSucces, Func<Err, Result<Val, Err>> onFailure)
+        public Result<TVal, TErr> Match(Func<TVal, Result<TVal, TErr>> onSucces, Func<TErr, Result<TVal, TErr>> onFailure)
         {
             return isSuccess ? onSucces(Value!) : onFailure(Error!);
         }
 
-        public void Match(Action<Val> onSucces, Action<Err> onFailure)
+        public void Match(Action<TVal> onSucces, Action<TErr> onFailure)
         {
             if (isSuccess)
                 onSucces(Value!);
@@ -35,13 +35,13 @@ namespace res
                 onFailure(Error!);
         }
 
-        public object Match(Func<Val, object> onSucces, Func<Err, object> onFailure)
+        public object Match(Func<TVal, object> onSucces, Func<TErr, object> onFailure)
         {
             return isSuccess ? onSucces(Value!) : onFailure(Error!);
         }
     }
 
-    public sealed record ResultError<ErrorType>(ErrorType Code, string Message)
+    public sealed record ResultError<TErrorType>(TErrorType Code, string Message)
     {
     }
 }

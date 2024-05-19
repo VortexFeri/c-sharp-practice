@@ -1,15 +1,17 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using res;
+using user_namespace;
 
 namespace ticket_purchaser
 {
     [method: JsonConstructor]
-    public class Concert(string artist, string location, DateTime date, int price, int tickets) 
+    public class Concert(int id, string artist, string location, DateTime date, int price, int tickets) 
     {
         [JsonInclude]
         [JsonPropertyName("id")]
-        public int Id;
+        public readonly int _Id = id;
+
         [JsonInclude]
         [JsonPropertyName("artist")]
         public readonly string Artist = artist;
@@ -31,40 +33,59 @@ namespace ticket_purchaser
         public readonly DateTime Date = date;
     }
 
-    public class ConcertMangager
+    public class ConcertManager : SerializableSingleton<Concert>
     {
-        private List<Concert> Concerts = [];
-        private readonly string Filepath;
+        public static int LastId { get; }
 
-        public ConcertMangager(string filepath)
+        private ConcertManager(string filepath) : base(filepath)
         {
-            Filepath = filepath;
             LoadConcerts();
+        }
+
+        public static void Initialize(string filePath)
+        {
+            Initialize(path => new ConcertManager(path), filePath);
         }
 
         private void LoadConcerts()
         {
             try
             {
-                string json = File.ReadAllText(Filepath);
-                Concerts = JsonSerializer.Deserialize<List<Concert>>(json) ?? [];
+                string json = File.ReadAllText(_filePath);
+                _items = JsonSerializer.Deserialize<List<Concert>>(json) ?? [];
             }
             catch (FileNotFoundException)
             {
-                Concerts = [];
+                _items = [];
             }
             catch (JsonException e)
             {
                 Console.WriteLine("Error loading concerts from file. Initializing empty concerts list.");
                 Console.WriteLine(e.Message);
-                Concerts = [];
+                _items = [];
             }
         }
         
         private void SaveConcerts()
         {
-            string json = JsonSerializer.Serialize(Concerts);
-            File.WriteAllText(Filepath, json);
+            string json = JsonSerializer.Serialize(_items);
+            File.WriteAllText(_filePath, json);
+        }
+
+        public Result<Account, ResultError<PurchaseError>> BuyTicket(ref Account acc, ref Concert concert)
+        {
+            if (concert.Tickets <= 0)
+            {
+                return new(Error.OutOfStock);
+            }
+
+            if (acc.HasTicket(concert._Id))
+            {
+                return new(Error.ConcertAlreadyInInventory);
+            }
+
+            SaveConcerts();
+            return new(acc);
         }
     }
 

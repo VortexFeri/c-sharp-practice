@@ -1,155 +1,157 @@
 ﻿using res;
+using ticket_purchaser;
 using user_namespace;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 //TODO: concerts
 //TODO: buy tickets
 //TODO: registration
 //TODO: remove users
 
-namespace ticket_purchaser
+internal class Program
 {
-    internal class Program
+    static Account? user;
+    static UserManager loginManager = (UserManager)UserManager.Instance;
+    static ConcertManager concertMangager = (ConcertManager)ConcertManager.Instance;
+
+    static readonly Command loginCommand = new(_ => Login(), "Login");
+    static readonly Command exitCommand = new(_ => { Console.ResetColor(); Environment.Exit(0); }, "Exit");
+    static readonly Command seeConcertsCommand = new(_ => SeeConcerts(), "See available concerts");
+
+    private static void SeeConcerts()
     {
-        static Account? user;
-        static readonly LoginManager loginManager = new("credentials.json");
+        ConsoleScreen concertsScreen = new();
+        
+    }
 
-        static readonly Command loginCommand = new(_ => Login(), "Login");
-        static readonly Command exitCommand = new(_ => { Console.ResetColor(); Environment.Exit(0); }, "Exit");
-        static readonly Command seeConcertsCommand = new(_ => SeeConcerts(), "See available concerts");
-
-        private static void SeeConcerts()
+    static void Main()
+    {
+        UserManager.Initialize("credentials.json");
+        ConcertManager.Initialize("concerts.json");
+        ConsoleScreen homeScreen = new()
         {
-            throw new NotImplementedException();
+            Title = "Welcome!",
+            Commands = SetupCommands()
+        };
+
+        while (true)
+        {
+            homeScreen.Show();
         }
+    }
 
-        static void Main()
+    private static void Login()
+    {
+        string? PromptUser(string prompt, bool isPassword = false) => ReadInput(prompt, isPassword);
+
+        void HandleResult(Result<Account, ResultError<LoginError>> result, string username)
         {
-            ConsoleScreen homeScreen = new()
-            {
-                Title = "Welcome!",
-                Commands = SetupCommands()
-            };
-            while (true)
-            {
-                homeScreen.Show();
-            }
-        }
+            result.Match(
+                account =>
+                {
+                    // Success
+                    user = account;
+                    Console.WriteLine("Login successful!");
+                    ShowLoadingDots();
 
-        private static void Login()
-        {
-            string? PromptUser(string prompt, bool isPassword = false) => ReadInput(prompt, isPassword);
-
-            void HandleResult(Result<Account, ResultError<LoginError>> result, string username)
-            {
-                result.Match(
-                    account =>
+                    ConsoleScreen userScreen = new()
                     {
-                        // Success
-                        user = account;
-                        Console.WriteLine("Login successful!");
-                        ShowLoadingDots();
+                        Title = "Hi, " + username,
+                        Commands = SetupCommands()
+                    };
+                    userScreen.Show();
+                },
+                error =>
+                {
+                    // Failure
+                    Console.WriteLine($"{error.Message}");
+                    ShowLoadingDots();
 
-                        ConsoleScreen userScreen = new()
-                        {
-                            Title = "Hi, " + username,
-                            Commands = SetupCommands()
-                        };
-                        userScreen.Show();
-                    },
-                    error =>
+                    if (error.Code == LoginError.InvalidPassword)
                     {
-                        // Failure
-                        Console.WriteLine($"{error.Message}");
-                        ShowLoadingDots();
-
-                        if (error.Code == LoginError.InvalidPassword)
+                        string? password = PromptUser("Password: ", true);
+                        if (!string.IsNullOrEmpty(password))
                         {
-                            string? password = PromptUser("Password: ", true);
-                            if (!string.IsNullOrEmpty(password))
-                            {
-                                HandleResult(loginManager.Match(username, password), username);
-                            }
+                            HandleResult(loginManager.Match(username, password), username);
                         }
-                        else if (error.Code == LoginError.UserNotFound)
-                        {
-                            Login();
-                        }
-                    });
-            }
-
-            string? username = PromptUser("Username: ");
-            if (string.IsNullOrEmpty(username)) return;
-
-            string? password = PromptUser("Password: ", true);
-            if (string.IsNullOrEmpty(password)) return;
-
-            HandleResult(loginManager.Match(username, password), username);
+                    }
+                    else if (error.Code == LoginError.UserNotFound)
+                    {
+                        Login();
+                    }
+                });
         }
 
-        private static List<Command> SetupCommands()
-        {
-            if (user is null)
-                return [loginCommand, exitCommand];
+        string? username = PromptUser("Username: ");
+        if (string.IsNullOrEmpty(username)) return;
 
-            if (user.Role == Role.User)
-                return [seeConcertsCommand, exitCommand];
+        string? password = PromptUser("Password: ", true);
+        if (string.IsNullOrEmpty(password)) return;
+
+        HandleResult(loginManager.Match(username, password), username);
+    }
+
+    private static List<Command> SetupCommands()
+    {
+        if (user is null)
+            return [loginCommand, exitCommand];
+
+        if (user.Role == Role.User)
+            return [seeConcertsCommand, exitCommand, seeConcertsCommand];
+        else
+            return [exitCommand];
+    }
+
+    private static void ShowLoadingDots()
+    {
+        for (int i = 0; i < 3; i++)
+        {
+            Console.Write(". ");
+            Thread.Sleep(500);
+        }
+        Console.WriteLine("\n");
+    }
+
+    private static string? ReadInput(string prompt = "", bool isPassword = false)
+    {
+        Console.WriteLine(prompt);
+        string input = "";
+        ConsoleKeyInfo keyInfo;
+        do
+        {
+            keyInfo = Console.ReadKey(true);
+
+            if (keyInfo.Key == ConsoleKey.Escape)
+            {
+                {
+                    Console.WriteLine();
+                    return null;
+                }
+            }
+            if (keyInfo.Key == ConsoleKey.Enter)
+            {
+                if (!string.IsNullOrEmpty(input))
+                {
+                    Console.WriteLine();
+                    return input;
+                }
+            }
+            if (keyInfo.Key == ConsoleKey.Backspace)
+            {
+                if (input.Length > 0)
+                {
+                    input = input[..^1];
+                    Console.Write("\b \b");
+                }
+            }
+            else if (!char.IsDigit(keyInfo.KeyChar) && !char.IsLetter(keyInfo.KeyChar) && !char.IsSymbol(keyInfo.KeyChar))
+            {
+                continue;
+            }
             else
-                return [exitCommand];
-        }
-
-        private static void ShowLoadingDots()
-        {
-            for (int i = 0; i < 3; i++)
             {
-                Console.Write(". ");
-                Thread.Sleep(500);
+                input += keyInfo.KeyChar;
+                Console.Write(isPassword ? "*" : keyInfo.KeyChar);
             }
-            Console.WriteLine("\n");
-        }
-
-        private static string? ReadInput(string prompt = "", bool isPassword = false)
-        {
-            Console.WriteLine(prompt);
-            string input = "";
-            ConsoleKeyInfo keyInfo;
-            do
-            {
-                keyInfo = Console.ReadKey(true);
-
-                if (keyInfo.Key == ConsoleKey.Escape)
-                {
-                    {
-                        Console.WriteLine();
-                        return null;
-                    }
-                }
-                if (keyInfo.Key == ConsoleKey.Enter)
-                {
-                    if (!string.IsNullOrEmpty(input))
-                    {
-                        Console.WriteLine();
-                        return input;
-                    }
-                }
-                if (keyInfo.Key == ConsoleKey.Backspace)
-                {
-                    if (input.Length > 0)
-                    {
-                        input = input[..^1];
-                        Console.Write("\b \b");
-                    }
-                }
-                else if (!char.IsDigit(keyInfo.KeyChar) && !char.IsLetter(keyInfo.KeyChar) && !char.IsSymbol(keyInfo.KeyChar))
-                {
-                    continue;
-                }
-                else
-                {
-                    input += keyInfo.KeyChar;
-                    Console.Write(isPassword ? "*" : keyInfo.KeyChar);
-                }
-            } while (true);
-        }
+        } while (true);
     }
 }

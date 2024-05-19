@@ -1,6 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 using res;
+using ticket_purchaser;
 
 namespace user_namespace
 {
@@ -8,44 +9,69 @@ namespace user_namespace
     public class Account(string name, string password, Role role = Role.User)
     {
         [JsonInclude]
-        [JsonPropertyName("username")]
+        [JsonPropertyName("name")]
         public string Name { get; } = name;
 
         [JsonInclude]
-        [JsonPropertyName("credits")]
-        private int Balance { get; }
+        [JsonPropertyName("balance")]
+        private int _balance;
 
         [JsonInclude]
         [JsonPropertyName("password")]
-        private readonly string Password = password;
+        private readonly string _password = password;
 
         [JsonInclude]
         [JsonPropertyName("role")]
         public readonly Role Role = role;
 
-        public bool CheckPassword(string password) => Password == password;
+        [JsonInclude]
+        [JsonPropertyName("concerts")]
+        private List<int> _concerts = [];
+
+        public bool CheckPassword(string password) => _password == password;
+
+        public bool HasTicket(int id)
+        {
+            return _concerts.Any(x => x == id);
+        }
+
+        public Result<Account, ResultError<UserOperationError>> TryToBuyTicket(ref Concert ticket)
+        {
+            if (_balance <= ticket.Price)
+            {
+                return new(Error.NotEnoughFunds);
+            }
+            else
+            {
+                _concerts.Add(ticket._Id);
+                _balance -= ticket.Price;
+                return new(this);
+            }
+        }
     }
 
-    public class LoginManager
+    public class UserManager : SerializableSingleton<Account>
     {
-        private List<Account> Accounts = [];
-        private readonly string FilePath;
-
-        public LoginManager(string filePath)
+        public UserManager(string filePath) : base(filePath)
         {
-            FilePath = filePath;
             LoadAccounts();
+            _items.Insert(0, new("SuperUser", "pass", Role.Superuser));
+        }
+
+        public static void Initialize(string filePath)
+        {
+            Initialize(path => new UserManager(path), filePath);
         }
 
         private bool AccountExists(string username)
         {
-            return Accounts.Exists(acc => acc.Name == username);
+            return _items.Exists(acc => acc.Name == username);
         }
 
         public Result<Account, ResultError<LoginError>> Match(string username, string password)
         {
             if (!AccountExists(username)) return new(Error.UserNotFound);
-            var account = Accounts.Find(acc => acc.Name == username);
+            var account = _items.Find(acc => acc.Name == username);
             if (account!.CheckPassword(password))
             {
                 return new(account);
@@ -56,32 +82,34 @@ namespace user_namespace
             }
         }
 
-
         private void LoadAccounts()
         {
             try
             {
-                string json = File.ReadAllText(FilePath);
-                Accounts = JsonSerializer.Deserialize<List<Account>>(json) ?? [];
+                string json = File.ReadAllText(_filePath);
+                Account superUser = _items.First();
+                _items = JsonSerializer.Deserialize<List<Account>>(json) ?? [];
+                _items.Insert(0, superUser);
             }
-            catch (FileNotFoundException)
-            {
-                // If the file does not exist, initialize accounts list
-                Accounts = [];
-            }
-            catch (JsonException e)
+            catch (Exception e)
             {
                 // If there's an error parsing JSON, initialize accounts list
                 Console.WriteLine("Error loading accounts from file. Initializing empty accounts list.");
                 Console.WriteLine(e.Message);
-                Accounts = [];
             }
         }
 
         private void SaveAccounts()
         {
-            string json = JsonSerializer.Serialize(Accounts);
-            File.WriteAllText(FilePath, json);
+            string json = JsonSerializer.Serialize(_items.GetRange(1, _items.Count - 1));
+            File.WriteAllText(_filePath, json);
+        }
+
+        public Result<Account, ResultError<UserOperationError>> BuyTicket(ref Account acc, ref Concert concert)
+        {
+            var result = acc.TryToBuyTicket(ref concert);
+            SaveAccounts();
+            return result;
         }
 
         public Result<Account, ResultError<SignUpError>> Register(string username, string password)
@@ -93,17 +121,16 @@ namespace user_namespace
             }
 
             var newAccount = new Account(username, password);
-            Accounts.Add(newAccount);
+            _items.Add(newAccount);
             SaveAccounts();
             Console.WriteLine("Registration successful.");
             return new(newAccount);
         }
-
     }
 
     public enum Role
     {
-        User, 
+        User,
         Admin, //TODO: Admin role
         Superuser //TODO: Superuser role
     }
@@ -124,7 +151,8 @@ namespace user_namespace
     public enum UserOperationError
     {
         UserNotAuthorized,
-        AdminNotAuthorized
+        AdminNotAuthorized,
+        NotEnoughFunds
     }
 
     public readonly struct Error
@@ -139,5 +167,6 @@ namespace user_namespace
 
         public static readonly ResultError<UserOperationError> UserNotAuthorised = new(UserOperationError.UserNotAuthorized, "You are not allowed to do this operation.");
         public static readonly ResultError<UserOperationError> AdminNotAuthorised = new(UserOperationError.AdminNotAuthorized, "Only The SuperUser can do that.");
+        public static readonly ResultError<UserOperationError> NotEnoughFunds = new(UserOperationError.NotEnoughFunds, "Insufficient funds.");
     }
 }
