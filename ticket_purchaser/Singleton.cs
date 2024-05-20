@@ -1,4 +1,4 @@
-﻿public abstract class SerializableSingleton<TItem>
+﻿public abstract class SerializableSingleton<TItem>(string filePath)
 {
     private static Lazy<SerializableSingleton<TItem>>? lazy;
     private static string? _initialFilePath;
@@ -14,13 +14,8 @@
         }
     }
 
-    protected List<TItem> _items = new List<TItem>();
-    protected readonly string _filePath;
-
-    protected SerializableSingleton(string filePath)
-    {
-        _filePath = filePath;
-    }
+    protected List<TItem> _items = [];
+    protected readonly string _filePath = filePath;
 
     public static void Initialize(Func<string, SerializableSingleton<TItem>> factoryMethod, string filePath)
     {

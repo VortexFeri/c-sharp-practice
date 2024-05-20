@@ -1,6 +1,4 @@
-﻿using ticket_purchaser;
-
-internal class Command
+﻿internal class Command
 {
     public string Title { get; set; }
 
@@ -20,7 +18,7 @@ internal class Command
 
     public object? Execute(params object[] parameters)
     {
-        if (_callback is Action < object[]> action)
+        if (_callback is Action<object[]> action)
         {
             action(parameters);
             return null;

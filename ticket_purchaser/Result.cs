@@ -6,30 +6,30 @@ namespace res
     {
         public readonly TVal? Value;
         public readonly TErr? Error;
-        private readonly bool isSuccess = false;
+        public readonly bool IsSuccess = false;
 
         public Result(TVal value)
         {
-            isSuccess = true;
+            IsSuccess = true;
             Value = value;
             Error = default;
         }
 
         public Result(TErr error)
         {
-            isSuccess = false;
+            IsSuccess = false;
             Value = default;
             Error = error;
         }
 
         public Result<TVal, TErr> Match(Func<TVal, Result<TVal, TErr>> onSucces, Func<TErr, Result<TVal, TErr>> onFailure)
         {
-            return isSuccess ? onSucces(Value!) : onFailure(Error!);
+            return IsSuccess ? onSucces(Value!) : onFailure(Error!);
         }
 
         public void Match(Action<TVal> onSucces, Action<TErr> onFailure)
         {
-            if (isSuccess)
+            if (IsSuccess)
                 onSucces(Value!);
             else 
                 onFailure(Error!);
@@ -37,7 +37,7 @@ namespace res
 
         public object Match(Func<TVal, object> onSucces, Func<TErr, object> onFailure)
         {
-            return isSuccess ? onSucces(Value!) : onFailure(Error!);
+            return IsSuccess ? onSucces(Value!) : onFailure(Error!);
         }
     }
 

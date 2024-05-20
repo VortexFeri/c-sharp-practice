@@ -1,37 +1,81 @@
-﻿using res;
+﻿using System.Text;
+using res;
 using ticket_purchaser;
 using user_namespace;
+using static ticket_purchaser.Utils;
 
-//TODO: concerts
-//TODO: buy tickets
 //TODO: registration
 //TODO: remove users
 
 internal class Program
 {
     static Account? user;
-    static UserManager loginManager = (UserManager)UserManager.Instance;
-    static ConcertManager concertMangager = (ConcertManager)ConcertManager.Instance;
+    static readonly UserManager loginManager = (UserManager)UserManager.Instance;
+    static readonly ConcertManager concertManager = (ConcertManager)ConcertManager.Instance;
 
     static readonly Command loginCommand = new(_ => Login(), "Login");
     static readonly Command exitCommand = new(_ => { Console.ResetColor(); Environment.Exit(0); }, "Exit");
     static readonly Command seeConcertsCommand = new(_ => SeeConcerts(), "See available concerts");
 
+    private static Result<Account, ResultError<PurchaseError>> BuyTicketWrapper(object[] parameters)
+    {
+        int id = (int)parameters[0];
+        return concertManager.BuyTicket(ref user!, id);
+    }
+
+    static readonly Command buyCommand = new(BuyTicketWrapper, "Buy Ticket");
+
     private static void SeeConcerts()
     {
-        ConsoleScreen concertsScreen = new();
-        
+        List<Concert> concerts = concertManager.GetItems();
+        ConsoleScreen screen = new([], $"Available Concerts\tBalance: {user!.Balance} Credits");
+        for (int i = 0; i < concerts.Count; i++)
+        {
+            StringBuilder sb = new();
+            sb.Append(concerts[i].Location).Append(", ").
+                Append(concerts[i].Date).
+                Append("\nTickets available: ").Append(concerts[i].Tickets).
+                Append("\nPrice: ").Append(concerts[i].Price).Append(" Credits\n");
+            screen.AddMultiLine(concerts[i].Artist, sb.ToString(), _ =>
+            {
+                ConsoleScreen confirmScreen = new($"Do you want to buy a ticket to this concert for {concerts[i-1].Price} credits?");
+                Command no = new(_ => _, "No");
+                Command yes = new(_ =>
+                {
+                    var res = (Result<Account, ResultError<PurchaseError>>)buyCommand.Execute(i)!;
+                    res.Match(
+                        acc =>
+                        {
+                            Console.WriteLine("Transaction succesful");
+                            ShowLoadingDots();
+                        },
+                        err =>
+                        {
+                            Console.WriteLine($"{err.Message}");
+                            ShowLoadingDots();
+                        }
+                        );
+                }, "Yes");
+                confirmScreen.AddCommand(no);
+                confirmScreen.AddCommand(yes);
+                confirmScreen.Show();
+
+                return _;
+            });
+
+        }
+        screen.Cancelable = true;
+        screen.Show();
+        ConsoleScreen userScreen = new(SetupCommands(), $"Hi, {user.Name}!\t-- Balance: {user.Balance} Credits");
+        userScreen.Show();
+
     }
 
     static void Main()
     {
         UserManager.Initialize("credentials.json");
         ConcertManager.Initialize("concerts.json");
-        ConsoleScreen homeScreen = new()
-        {
-            Title = "Welcome!",
-            Commands = SetupCommands()
-        };
+        ConsoleScreen homeScreen = new(SetupCommands(), "Welcome!");
 
         while (true)
         {
@@ -53,11 +97,7 @@ internal class Program
                     Console.WriteLine("Login successful!");
                     ShowLoadingDots();
 
-                    ConsoleScreen userScreen = new()
-                    {
-                        Title = "Hi, " + username,
-                        Commands = SetupCommands()
-                    };
+                    ConsoleScreen userScreen = new(SetupCommands(), $"Hi, {username}!\t-- Balance: {user.Balance} Credits");
                     userScreen.Show();
                 },
                 error =>
@@ -96,62 +136,8 @@ internal class Program
             return [loginCommand, exitCommand];
 
         if (user.Role == Role.User)
-            return [seeConcertsCommand, exitCommand, seeConcertsCommand];
+            return [seeConcertsCommand, exitCommand];
         else
-            return [exitCommand];
-    }
-
-    private static void ShowLoadingDots()
-    {
-        for (int i = 0; i < 3; i++)
-        {
-            Console.Write(". ");
-            Thread.Sleep(500);
-        }
-        Console.WriteLine("\n");
-    }
-
-    private static string? ReadInput(string prompt = "", bool isPassword = false)
-    {
-        Console.WriteLine(prompt);
-        string input = "";
-        ConsoleKeyInfo keyInfo;
-        do
-        {
-            keyInfo = Console.ReadKey(true);
-
-            if (keyInfo.Key == ConsoleKey.Escape)
-            {
-                {
-                    Console.WriteLine();
-                    return null;
-                }
-            }
-            if (keyInfo.Key == ConsoleKey.Enter)
-            {
-                if (!string.IsNullOrEmpty(input))
-                {
-                    Console.WriteLine();
-                    return input;
-                }
-            }
-            if (keyInfo.Key == ConsoleKey.Backspace)
-            {
-                if (input.Length > 0)
-                {
-                    input = input[..^1];
-                    Console.Write("\b \b");
-                }
-            }
-            else if (!char.IsDigit(keyInfo.KeyChar) && !char.IsLetter(keyInfo.KeyChar) && !char.IsSymbol(keyInfo.KeyChar))
-            {
-                continue;
-            }
-            else
-            {
-                input += keyInfo.KeyChar;
-                Console.Write(isPassword ? "*" : keyInfo.KeyChar);
-            }
-        } while (true);
+            return [seeConcertsCommand, exitCommand];
     }
 }

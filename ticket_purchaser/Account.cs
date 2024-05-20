@@ -5,8 +5,9 @@ using ticket_purchaser;
 
 namespace user_namespace
 {
-    [method: JsonConstructor]
-    public class Account(string name, string password, Role role = Role.User)
+    //[method: JsonConstructor]
+    [method: JsonConstructor]    //[method: JsonConstructor]
+    public class Account(string name, string password, List<int> concerts, Role role = Role.User, int balance = 0)
     {
         [JsonInclude]
         [JsonPropertyName("name")]
@@ -14,37 +15,38 @@ namespace user_namespace
 
         [JsonInclude]
         [JsonPropertyName("balance")]
-        private int _balance;
+        public int Balance { get; private set; } = balance;
 
         [JsonInclude]
         [JsonPropertyName("password")]
-        private readonly string _password = password;
+        private readonly string Password = password;
 
         [JsonInclude]
         [JsonPropertyName("role")]
-        public readonly Role Role = role;
+        public Role Role { get; } = role;
 
         [JsonInclude]
         [JsonPropertyName("concerts")]
-        private List<int> _concerts = [];
+        private readonly List<int> Concerts = concerts;
 
-        public bool CheckPassword(string password) => _password == password;
+
+        public bool CheckPassword(string password) => Password == password;
 
         public bool HasTicket(int id)
         {
-            return _concerts.Any(x => x == id);
+            return Concerts.Any(x => x == id);
         }
 
-        public Result<Account, ResultError<UserOperationError>> TryToBuyTicket(ref Concert ticket)
+        public Result<Account, ResultError<UserOperationError>> TryToBuyTicket(in Concert ticket)
         {
-            if (_balance <= ticket.Price)
+            if (Balance <= ticket.Price)
             {
                 return new(Error.NotEnoughFunds);
             }
             else
             {
-                _concerts.Add(ticket._Id);
-                _balance -= ticket.Price;
+                Concerts.Add(ticket.Id);
+                Balance -= ticket.Price;
                 return new(this);
             }
         }
@@ -54,8 +56,8 @@ namespace user_namespace
     {
         public UserManager(string filePath) : base(filePath)
         {
+            _items.Add(new("SuperUser", "pass", [], Role.Superuser));
             LoadAccounts();
-            _items.Insert(0, new("SuperUser", "pass", Role.Superuser));
         }
 
         public static void Initialize(string filePath)
@@ -88,14 +90,17 @@ namespace user_namespace
             {
                 string json = File.ReadAllText(_filePath);
                 Account superUser = _items.First();
+
                 _items = JsonSerializer.Deserialize<List<Account>>(json) ?? [];
+
                 _items.Insert(0, superUser);
             }
-            catch (Exception e)
+            catch (JsonException e)
             {
                 // If there's an error parsing JSON, initialize accounts list
                 Console.WriteLine("Error loading accounts from file. Initializing empty accounts list.");
                 Console.WriteLine(e.Message);
+                Utils.ShowLoadingDots();
             }
         }
 
@@ -105,9 +110,9 @@ namespace user_namespace
             File.WriteAllText(_filePath, json);
         }
 
-        public Result<Account, ResultError<UserOperationError>> BuyTicket(ref Account acc, ref Concert concert)
+        public Result<Account, ResultError<UserOperationError>> BuyTicket(ref Account acc, Concert concert)
         {
-            var result = acc.TryToBuyTicket(ref concert);
+            var result = acc.TryToBuyTicket(in concert);
             SaveAccounts();
             return result;
         }
@@ -120,7 +125,7 @@ namespace user_namespace
                 return new(Error.UserAlreadyExists);
             }
 
-            var newAccount = new Account(username, password);
+            var newAccount = new Account(username, password, []);
             _items.Add(newAccount);
             SaveAccounts();
             Console.WriteLine("Registration successful.");
