@@ -6,11 +6,11 @@ using user_namespace;
 namespace ticket_purchaser
 {
     [method: JsonConstructor]
-    public class Concert(string artist, string location, DateOnly date, int price, int tickets)
+    public class Concert(string artist, string location, DateOnly date, int price, int tickets, int id = 0)
     {
         [JsonInclude]
         [JsonPropertyName("id")]
-        public readonly int Id = ConcertManager.LastId + 1;
+        public readonly int Id = id == 0 ? ConcertManager.LastId + 1 : id;
 
         [JsonInclude]
         [JsonPropertyName("artist")]
@@ -35,8 +35,7 @@ namespace ticket_purchaser
 
     public class ConcertManager : SerializableSingleton<Concert>
     {
-        public static int LastId { get; }
-
+        public static int LastId { get; private set; }
         private ConcertManager(string filepath) : base(filepath)
         {
             LoadConcerts();
@@ -97,8 +96,7 @@ namespace ticket_purchaser
             {
                 return new(Error.OutOfStock);
             }
-
-            if (acc.HasTicket(concert.Value.Id))
+            if (acc.HasTicket((concert.Value.Id)))
             {
                 return new(Error.ConcertAlreadyInInventory);
             }
@@ -138,7 +136,8 @@ namespace ticket_purchaser
             if (_items.Any(x => x.Artist == artist && x.Date == date))
                 return new(Error.DateOverlap);
 
-            Concert c = new(artist, location, date, price, tickets);
+            Concert c = new(artist, location, date, price, tickets, LastId + 1);
+            LastId++;
             _items.Add(c);
             SaveConcerts();
             return new(c);

@@ -34,7 +34,7 @@ namespace user_namespace
 
         public bool HasTicket(int id)
         {
-            return Concerts.Any(x => x == id);
+            return Concerts.Exists(x => x == id);
         }
 
         public Result<Account, ResultError<UserOperationError>> TryToBuyTicket(in Concert ticket)
@@ -45,7 +45,7 @@ namespace user_namespace
             }
             else
             {
-                Concerts.Add(ticket.Id);
+                Concerts.Add((ticket.Id));
                 Balance -= ticket.Price;
                 return new(this);
             }

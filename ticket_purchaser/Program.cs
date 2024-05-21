@@ -29,20 +29,20 @@ internal class Program
     {
         List<Concert> concerts = concertManager.GetItems();
         ConsoleScreen screen = new([], $"Available Concerts\tBalance: {user!.Balance} Credits");
-        for (int i = 0; i < concerts.Count; i++)
+        foreach(var concert in concerts)
         {
             StringBuilder sb = new();
-            sb.Append(concerts[i].Location).Append(", ").
-                Append(concerts[i].Date).
-                Append("\nTickets available: ").Append(concerts[i].Tickets).
-                Append("\nPrice: ").Append(concerts[i].Price).Append(" Credits\n");
-            screen.AddMultiLine(concerts[i].Artist, sb.ToString(), _ =>
+            sb.Append(concert.Location).Append(", ").
+                Append(concert.Date).
+                Append("\nTickets available: ").Append(concert.Tickets).
+                Append("\nPrice: ").Append(concert.Price).Append(" Credits\n");
+            screen.AddMultiLine(concert.Artist, sb.ToString(), _ =>
             {
-                ConsoleScreen confirmScreen = new($"Do you want to buy a ticket to this concert for {concerts[i-1].Price} credits?");
+                ConsoleScreen confirmScreen = new($"Do you want to buy a ticket to this concert for {concert.Price} credits?");
                 Command no = new(_ => _, "No");
                 Command yes = new(_ =>
                 {
-                    var res = (Result<Account, ResultError<PurchaseError>>)buyCommand.Execute(i)!;
+                    var res = (Result<Account, ResultError<PurchaseError>>)buyCommand.Execute(concert.Id)!;
                     res.Match(
                         acc =>
                         {
