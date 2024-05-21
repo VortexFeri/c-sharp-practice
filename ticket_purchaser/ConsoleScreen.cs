@@ -39,23 +39,6 @@
             Commands.Add(new(title, description, new(function, title)));
         }
 
-        public void ClearCommands()
-        {
-            foreach (var c in Commands)
-            {
-                if (c.Description == null)
-                {
-                    Commands.Remove(c);
-                }
-            }
-        }
-
-        public void ClearCommandsFromView()
-        {
-            Console.Clear();
-            Console.WriteLine(Title);
-        }
-
         public void Show()
         {
             Console.Clear();
@@ -68,59 +51,17 @@
         private void ExecuteSelection()
         {
             int currentRow = 0;
+            int previousRow = -1;
             ConsoleKey consoleKey;
 
-            Console.CursorVisible = false;
+            var pos = Console.GetCursorPosition();
 
             do
             {
-                Console.Clear();
-                Console.ForegroundColor = TextColor;
-                Console.WriteLine(Title);
-
-                int totalRows = 0;
-
-                for (int i = 0; i < Commands.Count; i++)
-                {
-                    var command = Commands[i];
-                    int commandStartRow = totalRows;
-
-                    if (i == currentRow)
-                    {
-                        Console.SetCursorPosition(1, commandStartRow + 1);
-                        Console.Write("> ");
-                    }
-
-                    var commandLines = command.Title.Split('\n');
-                    for (int line = 0; line < commandLines.Length; line++)
-                    {
-                        Console.SetCursorPosition(3, commandStartRow + line + 1);
-
-                        Console.ForegroundColor = CommandColor;
-                        Console.Write(commandLines[line]);
-                        Console.ResetColor();
-                        totalRows++;
-                    }
-
-                    if (string.IsNullOrEmpty(command.Description))
-                        continue;
-
-                    var descLines = command.Description.Split('\n');
-                    for (int line = 0; line < descLines.Length; line++)
-                    {
-                        Console.SetCursorPosition(1, line + commandStartRow + 2);
-
-                        if (i == currentRow)
-                            Console.ForegroundColor = ConsoleColor.White;
-                        else Console.ForegroundColor = OptionColor;
-
-                        Console.Write(descLines[line]);
-                        Console.ResetColor();
-                        totalRows++;
-                    }
-                }
+                DisplayMenu(previousRow, currentRow);
 
                 consoleKey = Console.ReadKey(true).Key;
+                previousRow = currentRow;
                 switch (consoleKey)
                 {
                     case ConsoleKey.DownArrow:
@@ -138,9 +79,79 @@
                 }
             } while (consoleKey != ConsoleKey.Enter);
 
-            Console.CursorVisible = true;
-            Console.WriteLine("\n");
+            Console.SetCursorPosition(pos.Left, pos.Top + 1);
+            Console.WriteLine();
             Commands[currentRow].Execute();
+        }
+
+        private void DisplayMenu(int previousRow, int currentRow)
+        {
+            if (previousRow < 0)
+            {
+                Console.Clear();
+                Console.ForegroundColor = TextColor;
+                Console.WriteLine(Title);
+                Console.ResetColor();
+            }
+
+            Console.CursorVisible = false;
+
+            int totalRows = 0;
+
+            for (int i = 0; i < Commands.Count; i++)
+            {
+                var command = Commands[i];
+                int commandStartRow = totalRows;
+
+                Console.SetCursorPosition(1, commandStartRow + 1);
+                if (i == currentRow)
+                {
+                    Console.Write("> ");
+                }
+
+                if (previousRow != currentRow)
+                    for (int j = 0; j < command.Rows; j++)
+                    {
+                        Console.Write(new string(' ', 100));
+                        Console.Write(new string('\b', 100));
+                    }
+                Console.SetCursorPosition(1, commandStartRow + 1);
+                totalRows += DisplayCommand(command, commandStartRow, i == currentRow);
+            }
+
+            Console.SetCursorPosition(1, 0);
+            if (currentRow * (Commands[currentRow].Rows + 1) >= Console.WindowHeight)
+                Console.SetCursorPosition(1, currentRow * Commands[currentRow].Rows + Commands[currentRow].Rows - 1);
+        }
+
+        private int DisplayCommand(Option command, int startRow, bool isSelected)
+        {
+            int totalRows = 0;
+
+            var commandLines = command.Title.Split('\n');
+            foreach (var line in commandLines)
+            {
+                Console.SetCursorPosition(isSelected ? 3 : 1, startRow + totalRows + 1);
+                Console.ForegroundColor = CommandColor;
+                Console.Write(line);
+                Console.ResetColor();
+                totalRows++;
+            }
+
+            if (!string.IsNullOrEmpty(command.Description))
+            {
+                var descLines = command.Description.Split('\n');
+                foreach (var line in descLines)
+                {
+                    Console.SetCursorPosition(1, startRow + totalRows + 1);
+                    Console.ForegroundColor = isSelected ? TextColor : OptionColor;
+                    Console.Write(line);
+                    Console.ResetColor();
+                    totalRows++;
+                }
+            }
+
+            return totalRows;
         }
 
         private class Option
