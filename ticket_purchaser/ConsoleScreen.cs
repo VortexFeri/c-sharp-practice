@@ -5,6 +5,7 @@
         private List<Option> Commands { get; set; } = [];
         public string Title;
         public bool Cancelable = false;
+        public bool AutoScroll = true;
 
         public ConsoleColor CommandColor { get; set; } = ConsoleColor.Green;
         public ConsoleColor TextColor { get; set; } = ConsoleColor.White;
@@ -54,7 +55,7 @@
             int previousRow = -1;
             ConsoleKey consoleKey;
 
-            var pos = Console.GetCursorPosition();
+            var (Left, Top) = Console.GetCursorPosition();
 
             do
             {
@@ -79,9 +80,10 @@
                 }
             } while (consoleKey != ConsoleKey.Enter);
 
-            Console.SetCursorPosition(pos.Left, pos.Top + 1);
+            Console.SetCursorPosition(Left, Top + 1);
             Console.WriteLine();
-            Commands[currentRow].Execute();
+            if (Commands.Count > 0)
+                Commands[currentRow].Execute();
         }
 
         private void DisplayMenu(int previousRow, int currentRow)
@@ -97,6 +99,8 @@
             Console.CursorVisible = false;
 
             int totalRows = 0;
+
+            if (Commands.Count == 0) return;
 
             for (int i = 0; i < Commands.Count; i++)
             {
@@ -115,13 +119,17 @@
                         Console.Write(new string(' ', 100));
                         Console.Write(new string('\b', 100));
                     }
-                Console.SetCursorPosition(1, commandStartRow + 1);
+                if (AutoScroll)
+                    Console.SetCursorPosition(1, commandStartRow + 1);
                 totalRows += DisplayCommand(command, commandStartRow, i == currentRow);
             }
 
-            Console.SetCursorPosition(1, 0);
-            if (currentRow * (Commands[currentRow].Rows + 1) >= Console.WindowHeight)
-                Console.SetCursorPosition(1, currentRow * Commands[currentRow].Rows + Commands[currentRow].Rows - 1);
+            if (AutoScroll && Commands.Count > 0)
+            {
+                Console.SetCursorPosition(1, 0);
+                if (currentRow * (Commands[currentRow].Rows + 1) >= Console.WindowHeight)
+                    Console.SetCursorPosition(1, currentRow * Commands[currentRow].Rows + Commands[currentRow].Rows - 1);
+            }
         }
 
         private int DisplayCommand(Option command, int startRow, bool isSelected)

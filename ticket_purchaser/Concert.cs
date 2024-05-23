@@ -31,6 +31,14 @@ namespace ticket_purchaser
         [JsonInclude]
         [JsonPropertyName("date")]
         public readonly DateOnly Date = date;
+
+        internal string PrettyPrint(int headerLength)
+        {
+            string separator = new string('-', headerLength);
+            string details = $"{Artist,-20}{Location,-20}" + $"{Date:yyyy-MM-dd}".PadRight(12) + $"{Price}".PadRight(12);
+
+            return $"{separator}\n{details}";
+        }
     }
 
     public class ConcertManager : SerializableSingleton<Concert>

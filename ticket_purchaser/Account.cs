@@ -27,7 +27,7 @@ namespace user_namespace
 
         [JsonInclude]
         [JsonPropertyName("concerts")]
-        private readonly List<int> Concerts = concerts;
+        public readonly List<int> Concerts = concerts;
 
 
         public bool CheckPassword(string password) => Password == password;

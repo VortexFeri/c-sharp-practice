@@ -16,6 +16,8 @@ internal class Program
     static readonly Command loginCommand = new(_ => Login(), "Login");
     static readonly Command exitCommand = new(_ => { Console.ResetColor(); Environment.Exit(0); }, "Exit");
     static readonly Command seeConcertsCommand = new(_ => SeeConcerts(), "See available concerts");
+    static readonly Command buyCommand = new(BuyTicketWrapper, "Buy Ticket");
+    static readonly Command seeInventoryCommand = new(_ => SeeInventory(), "See Inventory");
 
     private static Result<Account, ResultError<PurchaseError>> BuyTicketWrapper(object[] parameters)
     {
@@ -23,52 +25,91 @@ internal class Program
         return concertManager.BuyTicket(ref user!, id);
     }
 
-    static readonly Command buyCommand = new(BuyTicketWrapper, "Buy Ticket");
 
     private static void SeeConcerts()
     {
         List<Concert> concerts = concertManager.GetItems();
-        ConsoleScreen screen = new([], $"Available Concerts\tBalance: {user!.Balance} Credits");
-        foreach(var concert in concerts)
+        ConsoleScreen screen = new([], $"Available Concerts\t--Balance: {user!.Balance} Credits");
+
+        foreach (var concert in concerts)
         {
             StringBuilder sb = new();
-            sb.Append(concert.Location).Append(", ").
-                Append(concert.Date).
-                Append("\nTickets available: ").Append(concert.Tickets).
-                Append("\nPrice: ").Append(concert.Price).Append(" Credits\n");
+            sb.Append($"{concert.Location}, {concert.Date}\n")
+              .Append($"Tickets available: {concert.Tickets}\n")
+              .Append($"Price: {concert.Price} Credits\n");
+
             screen.AddMultiLine(concert.Artist, sb.ToString(), _ =>
             {
-                ConsoleScreen confirmScreen = new($"Do you want to buy a ticket to this concert for {concert.Price} credits?");
-                Command no = new(_ => _, "No");
-                Command yes = new(_ =>
-                {
-                    var res = (Result<Account, ResultError<PurchaseError>>)buyCommand.Execute(concert.Id)!;
-                    res.Match(
-                        acc =>
-                        {
-                            Console.WriteLine("Transaction succesful");
-                            ShowLoadingDots();
-                        },
-                        err =>
-                        {
-                            Console.WriteLine($"{err.Message}");
-                            ShowLoadingDots();
-                        }
-                        );
-                }, "Yes");
-                confirmScreen.AddCommand(no);
-                confirmScreen.AddCommand(yes);
-                confirmScreen.Show();
-
+                ShowConfirmationScreen(concert);
                 return _;
             });
-
         }
+
         screen.Cancelable = true;
         screen.Show();
-        ConsoleScreen userScreen = new(SetupCommands(), $"Hi, {user.Name}!\t-- Balance: {user.Balance} Credits");
-        userScreen.Show();
 
+        ShowUserScreen();
+    }
+
+    private static void SeeInventory()
+    {
+        if (user!.Concerts.Count != 0)
+        {
+            Console.WriteLine("\nHere is your inventory\n");
+            string header = "Artist".PadRight(20) + "Location".PadRight(20) + "Date".PadRight(12) + "Price".PadRight(10);
+            string separator = new('-', header.Length);
+            Console.WriteLine(separator);
+            Console.WriteLine(header);
+            foreach (var id in user!.Concerts)
+            {
+                var c = concertManager.GetConcertById(id);
+                if (c.Value != null)
+                {
+                    Console.WriteLine(c.Value.PrettyPrint(header.Length));
+                }
+            }
+            Console.WriteLine(separator);
+        }
+        else
+        {
+            Console.WriteLine("You do not have any tickets in your inventory.");
+
+        }
+        Console.CursorVisible = true;
+        Console.WriteLine("Press Enter to Continue...");
+        while (Console.ReadKey().Key != ConsoleKey.Enter) ;
+    }
+
+    private static void ShowConfirmationScreen(Concert concert)
+    {
+        ConsoleScreen confirmScreen = new($"Do you want to buy a ticket to this concert for {concert.Price} credits?");
+        Command no = new(_ => _, "No");
+        Command yes = new(_ =>
+        {
+            var res = (Result<Account, ResultError<PurchaseError>>)buyCommand.Execute(concert.Id)!;
+            res.Match(
+                acc =>
+                {
+                    Console.WriteLine("Transaction successful");
+                    ShowLoadingDots();
+                },
+                err =>
+                {
+                    Console.WriteLine($"{err.Message}");
+                    ShowLoadingDots();
+                }
+            );
+        }, "Yes");
+
+        confirmScreen.AddCommand(no);
+        confirmScreen.AddCommand(yes);
+        confirmScreen.Show();
+    }
+
+    private static void ShowUserScreen()
+    {
+        ConsoleScreen userScreen = new(SetupCommands(), $"Hi, {user!.Name}!\t-- Balance: {user.Balance} Credits");
+        userScreen.Show();
     }
 
     static void Main()
@@ -97,8 +138,7 @@ internal class Program
                     Console.WriteLine("Login successful!");
                     ShowLoadingDots();
 
-                    ConsoleScreen userScreen = new(SetupCommands(), $"Hi, {username}!\t-- Balance: {user.Balance} Credits");
-                    userScreen.Show();
+                    ShowUserScreen();
                 },
                 error =>
                 {
@@ -136,8 +176,8 @@ internal class Program
             return [loginCommand, exitCommand];
 
         if (user.Role == Role.User)
-            return [seeConcertsCommand, exitCommand];
+            return [seeConcertsCommand, seeInventoryCommand, exitCommand];
         else
-            return [seeConcertsCommand, exitCommand];
+            return [seeConcertsCommand, seeInventoryCommand, exitCommand];
     }
 }
