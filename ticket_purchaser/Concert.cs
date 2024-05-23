@@ -34,8 +34,8 @@ namespace ticket_purchaser
 
         internal string PrettyPrint(int headerLength)
         {
-            string separator = new string('-', headerLength);
-            string details = $"{Artist,-20}{Location,-20}" + $"{Date:yyyy-MM-dd}".PadRight(12) + $"{Price}".PadRight(12);
+            string separator = new('-', headerLength);
+            string details = $"{Artist,-20}{Location,-20}" + $"{Date:yyyy-MM-dd}".PadLeft(12) + $"{Price}".PadLeft(16);
 
             return $"{separator}\n{details}";
         }
@@ -60,6 +60,7 @@ namespace ticket_purchaser
             {
                 string json = File.ReadAllText(_filePath);
                 _items = JsonSerializer.Deserialize<List<Concert>>(json) ?? [];
+                LastId = _items.Count;
             }
             catch (FileNotFoundException)
             {
@@ -94,7 +95,6 @@ namespace ticket_purchaser
 
         public Result<Account, ResultError<PurchaseError>> BuyTicket(ref Account acc, int id)
         {
-
             var concert = GetConcertById(id);
             if (concert.Value == null)
             {
@@ -179,6 +179,5 @@ namespace ticket_purchaser
         public static readonly ResultError<RegistrationError> NegativeOrZeroTickets = new(RegistrationError.NegativeOrZeroTickets, "Ticket amount should be a non-zero positive number.");
         public static readonly ResultError<RegistrationError> DateOverlap = new(RegistrationError.DateOverlap, "The artist already has a concert planned for that day");
         public static readonly ResultError<RegistrationError> PriceError = new(RegistrationError.PriceError, "The price should be a non-zero positive amount.");
-
     }
 }

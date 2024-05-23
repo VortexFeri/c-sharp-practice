@@ -1,14 +1,31 @@
-﻿using System.Text;
+﻿using System;
+using System.Net.Http.Headers;
+using System.Runtime.CompilerServices;
+using System.Text;
 using res;
 using ticket_purchaser;
 using user_namespace;
 using static ticket_purchaser.Utils;
 
-//TODO: registration
+//TODO: registration - partially done - needs to be able to choose a role
 //TODO: remove users
+//TODO: modify user's funds
 
 internal class Program
 {
+    static void Main()
+    {
+        UserManager.Initialize("credentials.json");
+        ConcertManager.Initialize("concerts.json");
+        ConsoleScreen homeScreen = new(SetupCommands(), "Welcome!");
+        homeScreen.AutoScroll = false;
+
+        while (true)
+        {
+            homeScreen.Show();
+        }
+    }
+
     static Account? user;
     static readonly UserManager loginManager = (UserManager)UserManager.Instance;
     static readonly ConcertManager concertManager = (ConcertManager)ConcertManager.Instance;
@@ -18,6 +35,52 @@ internal class Program
     static readonly Command seeConcertsCommand = new(_ => SeeConcerts(), "See available concerts");
     static readonly Command buyCommand = new(BuyTicketWrapper, "Buy Ticket");
     static readonly Command seeInventoryCommand = new(_ => SeeInventory(), "See Inventory");
+    static readonly Command showUsersCommand = new(_ => ShowUsers(), "Show Users");
+    static readonly Command addUserCommand = new(_ => AddUser(), "Register new user");
+
+    private static void AddUser()
+    {
+        void HandleResult(Result<Account, ResultError<SignUpError>> result, string username)
+        {
+            result.Match(
+                account =>
+                {
+                    // Success
+                    Console.WriteLine("User registered succesfully!");
+                    ShowLoadingDots();
+
+                    ShowUserScreen();
+                },
+                error =>
+                {
+                    // Failure
+                    Console.WriteLine($"{error.Message}");
+                    ShowLoadingDots();
+
+                    if (error.Code == SignUpError.WeakPassword)
+                    {
+                        string? password = ReadInput("Password: ", true);
+                        if (!string.IsNullOrEmpty(password))
+                        {
+                            HandleResult(loginManager.Register(username, password), username);
+                        }
+                    }
+                    else if (error.Code == SignUpError.InvalidCharacter || error.Code == SignUpError.UserAlreadyExists)
+                    {
+                        AddUser();
+                    }
+                });
+        }
+
+        string? username = ReadInput("Username: ");
+        if (string.IsNullOrEmpty(username)) return;
+
+        string? password = ReadInput("Password: ", true);
+        if (string.IsNullOrEmpty(password)) return;
+
+        HandleResult(loginManager.Register(username, password), username);
+        ShowUserScreen();
+    }
 
     private static Result<Account, ResultError<PurchaseError>> BuyTicketWrapper(object[] parameters)
     {
@@ -40,7 +103,7 @@ internal class Program
 
             screen.AddMultiLine(concert.Artist, sb.ToString(), _ =>
             {
-                ShowConfirmationScreen(concert);
+                PurchaseConfirmationScreen(concert);
                 return _;
             });
         }
@@ -56,7 +119,7 @@ internal class Program
         if (user!.Concerts.Count != 0)
         {
             Console.WriteLine("\nHere is your inventory\n");
-            string header = "Artist".PadRight(20) + "Location".PadRight(20) + "Date".PadRight(12) + "Price".PadRight(10);
+            string header = "Artist".PadRight(20) + "Location".PadRight(20) + "Date".PadLeft(12) + "Price".PadLeft(16);
             string separator = new('-', header.Length);
             Console.WriteLine(separator);
             Console.WriteLine(header);
@@ -78,9 +141,10 @@ internal class Program
         Console.CursorVisible = true;
         Console.WriteLine("Press Enter to Continue...");
         while (Console.ReadKey().Key != ConsoleKey.Enter) ;
+        ShowUserScreen();
     }
 
-    private static void ShowConfirmationScreen(Concert concert)
+    private static void PurchaseConfirmationScreen(Concert concert)
     {
         ConsoleScreen confirmScreen = new($"Do you want to buy a ticket to this concert for {concert.Price} credits?");
         Command no = new(_ => _, "No");
@@ -112,22 +176,8 @@ internal class Program
         userScreen.Show();
     }
 
-    static void Main()
-    {
-        UserManager.Initialize("credentials.json");
-        ConcertManager.Initialize("concerts.json");
-        ConsoleScreen homeScreen = new(SetupCommands(), "Welcome!");
-
-        while (true)
-        {
-            homeScreen.Show();
-        }
-    }
-
     private static void Login()
     {
-        string? PromptUser(string prompt, bool isPassword = false) => ReadInput(prompt, isPassword);
-
         void HandleResult(Result<Account, ResultError<LoginError>> result, string username)
         {
             result.Match(
@@ -148,7 +198,7 @@ internal class Program
 
                     if (error.Code == LoginError.InvalidPassword)
                     {
-                        string? password = PromptUser("Password: ", true);
+                        string? password = ReadInput("Password: ", true);
                         if (!string.IsNullOrEmpty(password))
                         {
                             HandleResult(loginManager.Match(username, password), username);
@@ -161,10 +211,10 @@ internal class Program
                 });
         }
 
-        string? username = PromptUser("Username: ");
+        string? username = ReadInput("Username: ");
         if (string.IsNullOrEmpty(username)) return;
 
-        string? password = PromptUser("Password: ", true);
+        string? password = ReadInput("Password: ", true);
         if (string.IsNullOrEmpty(password)) return;
 
         HandleResult(loginManager.Match(username, password), username);
@@ -178,6 +228,54 @@ internal class Program
         if (user.Role == Role.User)
             return [seeConcertsCommand, seeInventoryCommand, exitCommand];
         else
-            return [seeConcertsCommand, seeInventoryCommand, exitCommand];
+            return [seeConcertsCommand, seeInventoryCommand, showUsersCommand, addUserCommand, exitCommand];
+    }
+
+    private static void ShowUsers()
+    {
+        List<Account> users = loginManager.GetItems();
+        ConsoleScreen screen = new([], $"Registered Users:");
+
+        foreach (var u in users)
+        {
+            if (user == u) continue;
+
+            screen.AddMultiLine(u.Name, $"Balance: {u.Balance}\nRole: {u.Role}", _ =>
+            {
+                if (u.Role != Role.User)
+                {
+                    Console.WriteLine("Only the SUPERUSER can operate onto admins."); // will never show
+                    ShowLoadingDots();
+                    return _;
+                }
+
+                //ConsoleScreen confirmScreen = new($"What do you want to do to the user {u.Name}?");
+                //Command cancel = new(_ => _, "Cancel");
+                //Command remove = new(_ =>
+                //{
+                //    var res = (Result<Account, ResultError<UserOperationError>>)removeCommand.Execute(u.Name)!;
+                //    res.Match(
+                //        acc =>
+                //        {
+                //            Console.WriteLine("Transaction successful");
+                //            ShowLoadingDots();
+                //        },
+                //        err =>
+                //        {
+                //            Console.WriteLine($"{err.Message}");
+                //            ShowLoadingDots();
+                //        }
+                //    );
+                //    return _;
+                //});
+                return _;
+            });
+        }
+
+        screen.AutoScroll = false;
+        screen.Cancelable = true;
+        screen.Show();
+
+        ShowUserScreen();
     }
 }

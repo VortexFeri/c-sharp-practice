@@ -7,6 +7,8 @@
         public bool Cancelable = false;
         public bool AutoScroll = true;
 
+        public static ConsoleScreen? Current { get; private set; }
+
         public ConsoleColor CommandColor { get; set; } = ConsoleColor.Green;
         public ConsoleColor TextColor { get; set; } = ConsoleColor.White;
         public ConsoleColor OptionColor { get; set; } = ConsoleColor.DarkGray;
@@ -40,13 +42,15 @@
             Commands.Add(new(title, description, new(function, title)));
         }
 
-        public void Show()
+        public void Show(bool clear = true)
         {
-            Console.Clear();
+            if (clear)
+                Console.Clear();
             Console.ForegroundColor = TextColor;
             Console.WriteLine(Title);
 
             ExecuteSelection();
+            Current = this;
         }
 
         private void ExecuteSelection()
@@ -54,8 +58,6 @@
             int currentRow = 0;
             int previousRow = -1;
             ConsoleKey consoleKey;
-
-            var (Left, Top) = Console.GetCursorPosition();
 
             do
             {
@@ -80,7 +82,8 @@
                 }
             } while (consoleKey != ConsoleKey.Enter);
 
-            Console.SetCursorPosition(Left, Top + 1);
+            Console.SetCursorPosition(1, currentRow * Commands[currentRow].Rows + Commands[currentRow].Rows + 1);
+            Console.CursorVisible = true;
             Console.WriteLine();
             if (Commands.Count > 0)
                 Commands[currentRow].Execute();
@@ -128,7 +131,7 @@
             {
                 Console.SetCursorPosition(1, 0);
                 if (currentRow * (Commands[currentRow].Rows + 1) >= Console.WindowHeight)
-                    Console.SetCursorPosition(1, currentRow * Commands[currentRow].Rows + Commands[currentRow].Rows - 1);
+                    Console.SetCursorPosition(1, currentRow * Commands[currentRow].Rows + Commands[currentRow].Rows + 1);
             }
         }
 

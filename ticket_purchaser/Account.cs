@@ -5,8 +5,7 @@ using ticket_purchaser;
 
 namespace user_namespace
 {
-    //[method: JsonConstructor]
-    [method: JsonConstructor]    //[method: JsonConstructor]
+    [method: JsonConstructor]
     public class Account(string name, string password, List<int> concerts, Role role = Role.User, int balance = 0)
     {
         [JsonInclude]
@@ -56,7 +55,7 @@ namespace user_namespace
     {
         public UserManager(string filePath) : base(filePath)
         {
-            _items.Add(new("SuperUser", "pass", [], Role.Superuser));
+            _items.Add(new("superdooper24", "myvoiceismypassword", [], Role.Superuser));
             LoadAccounts();
         }
 
@@ -97,7 +96,7 @@ namespace user_namespace
             }
             catch (JsonException e)
             {
-                // If there's an error parsing JSON, initialize accounts list
+                // If there's an error parsing JSON, accounts list has default content (there is just the Super User account)
                 Console.WriteLine("Error loading accounts from file. Initializing empty accounts list.");
                 Console.WriteLine(e.Message);
                 Utils.ShowLoadingDots();
@@ -121,14 +120,12 @@ namespace user_namespace
         {
             if (AccountExists(username))
             {
-                Console.WriteLine("Username already exists. Please choose a different username.");
                 return new(Error.UserAlreadyExists);
             }
 
             var newAccount = new Account(username, password, []);
             _items.Add(newAccount);
             SaveAccounts();
-            Console.WriteLine("Registration successful.");
             return new(newAccount);
         }
     }
@@ -155,8 +152,8 @@ namespace user_namespace
 
     public enum UserOperationError
     {
-        UserNotAuthorized,
-        AdminNotAuthorized,
+        UserNotAuthorized, //TODO: unused
+        AdminNotAuthorized, //TODO: unused
         NotEnoughFunds
     }
 
