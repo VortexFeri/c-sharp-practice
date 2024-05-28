@@ -17,8 +17,10 @@ internal class Program
     {
         UserManager.Initialize("credentials.json");
         ConcertManager.Initialize("concerts.json");
-        ConsoleScreen homeScreen = new(SetupCommands(), "Welcome!");
-        homeScreen.AutoScroll = false;
+        ConsoleScreen homeScreen = new(SetupCommands(), "Welcome!")
+        {
+            AutoScroll = false
+        };
 
         while (true)
         {
@@ -31,6 +33,7 @@ internal class Program
     static readonly ConcertManager concertManager = (ConcertManager)ConcertManager.Instance;
 
     static readonly Command loginCommand = new(_ => Login(), "Login");
+    static readonly Command logoutCommand = new(_ => { user = null; }, "Logout");
     static readonly Command exitCommand = new(_ => { Console.ResetColor(); Environment.Exit(0); }, "Exit");
     static readonly Command seeConcertsCommand = new(_ => SeeConcerts(), "See available concerts");
     static readonly Command buyCommand = new(BuyTicketWrapper, "Buy Ticket");
@@ -119,7 +122,7 @@ internal class Program
         if (user!.Concerts.Count != 0)
         {
             Console.WriteLine("\nHere is your inventory\n");
-            string header = "Artist".PadRight(20) + "Location".PadRight(20) + "Date".PadLeft(12) + "Price".PadLeft(16);
+            string header = "Artist".PadRight(20) + "Location".PadRight(20) + "Date".PadRight(12) + "Price".PadLeft(16);
             string separator = new('-', header.Length);
             Console.WriteLine(separator);
             Console.WriteLine(header);
@@ -226,9 +229,9 @@ internal class Program
             return [loginCommand, exitCommand];
 
         if (user.Role == Role.User)
-            return [seeConcertsCommand, seeInventoryCommand, exitCommand];
+            return [seeConcertsCommand, seeInventoryCommand, logoutCommand, exitCommand];
         else
-            return [seeConcertsCommand, seeInventoryCommand, showUsersCommand, addUserCommand, exitCommand];
+            return [seeConcertsCommand, seeInventoryCommand, showUsersCommand, addUserCommand, logoutCommand, exitCommand];
     }
 
     private static void ShowUsers()

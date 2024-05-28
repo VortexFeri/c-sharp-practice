@@ -44,7 +44,7 @@
                         Console.Write("\b \b");
                     }
                 }
-                else if (!char.IsDigit(keyInfo.KeyChar) && !char.IsLetter(keyInfo.KeyChar) && !char.IsSymbol(keyInfo.KeyChar))
+                else if (!char.IsDigit(keyInfo.KeyChar) && !char.IsLetter(keyInfo.KeyChar) && !char.Equals(keyInfo.KeyChar, '_'))
                 {
                     continue;
                 }

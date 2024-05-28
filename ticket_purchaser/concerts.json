@@ -3,7 +3,7 @@
         "id": 5,
         "artist": "Drake",
         "location": "Toronto",
-        "tickets": 180,
+        "tickets": 32,
         "price": 650,
         "date": "2024-07-22"
     },
@@ -11,7 +11,7 @@
         "id": 7,
         "artist": "Lady Gaga",
         "location": "Los Angeles",
-        "tickets": 130,
+        "tickets": 75,
         "price": 900,
         "date": "2024-08-25"
     },
@@ -19,7 +19,7 @@
         "id": 1,
         "artist": "Coldplay",
         "location": "Berlin",
-        "tickets": 150,
+        "tickets": 12,
         "price": 800,
         "date": "2024-09-15"
     },
@@ -27,7 +27,7 @@
         "id": 8,
         "artist": "Billie Eilish",
         "location": "Tokyo",
-        "tickets": 140,
+        "tickets": 56,
         "price": 700,
         "date": "2024-09-30"
     },
@@ -38,14 +38,6 @@
         "tickets": 160,
         "price": 850,
         "date": "2024-10-10"
-    },
-    {
-        "id": 3,
-        "artist": "Ed Sheeran",
-        "location": "Paris",
-        "tickets": 200,
-        "price": 750,
-        "date": "2024-10-20"
     },
     {
         "id": 2,
@@ -72,11 +64,19 @@
         "date": "2024-12-01"
     },
     {
+        "id": 3,
+        "artist": "Taylor Swift",
+        "location": "Vienna",
+        "tickets": 100,
+        "price": 900,
+        "date": "2024-08-08"
+    },
+    {
         "id": 9,
-        "artist": "Harry Styles",
-        "location": "Sydney",
-        "tickets": 189,
-        "price": 600,
-        "date": "2024-12-15"
+        "artist": "The Weeknd",
+        "location": "Brisbane",
+        "tickets": 50,
+        "price": 400,
+        "date": "2024-12-31"
     }
 ]

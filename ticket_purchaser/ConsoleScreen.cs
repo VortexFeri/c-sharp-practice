@@ -55,25 +55,25 @@
 
         private void ExecuteSelection()
         {
-            int currentRow = 0;
-            int previousRow = -1;
+            int currentCommand = 0;
+            int previousCommand = -1;
             ConsoleKey consoleKey;
 
             do
             {
-                DisplayMenu(previousRow, currentRow);
+                DisplayMenu(previousCommand, currentCommand);
 
                 consoleKey = Console.ReadKey(true).Key;
-                previousRow = currentRow;
+                previousCommand = currentCommand;
                 switch (consoleKey)
                 {
                     case ConsoleKey.DownArrow:
-                        if (currentRow + 1 < Commands.Count)
-                            currentRow++;
+                        if (currentCommand + 1 < Commands.Count)
+                            currentCommand++;
                         break;
                     case ConsoleKey.UpArrow:
-                        if (currentRow >= 1)
-                            currentRow--;
+                        if (currentCommand >= 1)
+                            currentCommand--;
                         break;
                     case ConsoleKey.Escape:
                         if (Cancelable)
@@ -82,11 +82,11 @@
                 }
             } while (consoleKey != ConsoleKey.Enter);
 
-            Console.SetCursorPosition(1, currentRow * Commands[currentRow].Rows + Commands[currentRow].Rows + 1);
+            Console.SetCursorPosition(1, currentCommand * Commands[currentCommand].Rows + Commands[currentCommand].Rows + 1);
             Console.CursorVisible = true;
             Console.WriteLine();
             if (Commands.Count > 0)
-                Commands[currentRow].Execute();
+                Commands[currentCommand].Execute();
         }
 
         private void DisplayMenu(int previousRow, int currentRow)
@@ -104,34 +104,41 @@
             int totalRows = 0;
 
             if (Commands.Count == 0) return;
-
             for (int i = 0; i < Commands.Count; i++)
             {
                 var command = Commands[i];
                 int commandStartRow = totalRows;
 
                 Console.SetCursorPosition(1, commandStartRow + 1);
-                if (i == currentRow)
-                {
-                    Console.Write("> ");
-                }
 
                 if (previousRow != currentRow)
+                {
                     for (int j = 0; j < command.Rows; j++)
                     {
                         Console.Write(new string(' ', 100));
                         Console.Write(new string('\b', 100));
                     }
+                }
                 if (AutoScroll)
+                {
                     Console.SetCursorPosition(1, commandStartRow + 1);
-                totalRows += DisplayCommand(command, commandStartRow, i == currentRow);
+                }
+                if (previousRow != currentRow)
+                {
+                    if (i == currentRow)
+                    {
+                        Console.Write("> ");
+                    }
+                    totalRows += DisplayCommand(command, commandStartRow, i == currentRow);
+                }
             }
 
             if (AutoScroll && Commands.Count > 0)
             {
-                Console.SetCursorPosition(1, 0);
                 if (currentRow * (Commands[currentRow].Rows + 1) >= Console.WindowHeight)
                     Console.SetCursorPosition(1, currentRow * Commands[currentRow].Rows + Commands[currentRow].Rows + 1);
+                else
+                    Console.SetCursorPosition(1, 0);
             }
         }
 
