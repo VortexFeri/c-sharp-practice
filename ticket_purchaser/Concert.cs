@@ -58,36 +58,36 @@ namespace ticket_purchaser
         {
             try
             {
-                string json = File.ReadAllText(_filePath);
-                _items = JsonSerializer.Deserialize<List<Concert>>(json) ?? [];
-                LastId = _items.Count;
+                string json = File.ReadAllText(FilePath);
+                Items = JsonSerializer.Deserialize<List<Concert>>(json) ?? [];
+                LastId = Items.Count;
             }
             catch (FileNotFoundException)
             {
-                _items = [];
+                Items = [];
             }
             catch (JsonException e)
             {
                 Console.WriteLine("Error loading concerts from file. Initializing empty concerts list.");
                 Console.WriteLine(e.Message);
-                _items = [];
+                Items = [];
             }
         }
 
         private void SaveConcerts()
         {
-            _items = [.. _items.OrderBy(concert => concert.Date)];
-            string json = JsonSerializer.Serialize(_items);
-            File.WriteAllText(_filePath, json);
+            Items = [.. Items.OrderBy(concert => concert.Date)];
+            string json = JsonSerializer.Serialize(Items);
+            File.WriteAllText(FilePath, json);
         }
 
         public Result<Concert, ResultError<PurchaseError>> GetConcertById(int id)
         {
-            for (int i = 0; i < _items.Count; i++)
+            for (int i = 0; i < Items.Count; i++)
             {
-                if (_items[i].Id == id)
+                if (Items[i].Id == id)
                 {
-                    return new(_items.ElementAt(i));
+                    return new(Items.ElementAt(i));
                 }
             }
             return new(Error.ConcertNotFound);
@@ -141,12 +141,12 @@ namespace ticket_purchaser
                 return new(Error.PriceError);
             if (tickets <= 0)
                 return new(Error.NegativeOrZeroTickets);
-            if (_items.Any(x => x.Artist == artist && x.Date == date))
+            if (Items.Any(x => x.Artist == artist && x.Date == date))
                 return new(Error.DateOverlap);
 
             Concert c = new(artist, location, date, price, tickets, LastId + 1);
             LastId++;
-            _items.Add(c);
+            Items.Add(c);
             SaveConcerts();
             return new(c);
         }

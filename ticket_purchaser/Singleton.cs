@@ -1,29 +1,29 @@
-﻿public abstract class SerializableSingleton<TItem>(string filePath)
+﻿namespace ticket_purchaser;
+
+public abstract class SerializableSingleton<TItem>(string filePath) : FileInit
 {
-    private static Lazy<SerializableSingleton<TItem>>? lazy;
-    private static string? _initialFilePath;
-    private static bool isInitialized = false;
+    private static Lazy<SerializableSingleton<TItem>>? _lazy;
 
     public static SerializableSingleton<TItem> Instance
     {
         get
         {
-            if (lazy == null || lazy.Value == null)
+            if (_lazy == null || _lazy.Value == null)
                 throw new InvalidOperationException($"{typeof(SerializableSingleton<TItem>).Name} must be initialized with a file path before use.");
-            return lazy.Value;
+            return _lazy.Value;
         }
     }
 
-    protected List<TItem> _items = [];
-    protected readonly string _filePath = filePath;
+    protected List<TItem> Items = [];
+    protected readonly string FilePath = filePath;
 
     public static void Initialize(Func<string, SerializableSingleton<TItem>> factoryMethod, string filePath)
     {
-        if (!isInitialized)
+        if (!IsInitialized)
         {
-            _initialFilePath = filePath;
-            lazy = new Lazy<SerializableSingleton<TItem>>(() => factoryMethod(_initialFilePath!));
-            isInitialized = true;
+            InitialFilePath = filePath;
+            _lazy = new(() => factoryMethod(InitialFilePath!));
+            IsInitialized = true;
         }
         else
         {
@@ -33,6 +33,13 @@
 
     public List<TItem> GetItems()
     {
-        return new List<TItem>(_items);
+        return [.. Items];
     }
+}
+
+public class FileInit
+{
+    protected static string? InitialFilePath { get; set; }
+
+    protected static bool IsInitialized { get; set; }
 }

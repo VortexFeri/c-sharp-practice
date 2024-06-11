@@ -1,4 +1,6 @@
-﻿internal class Command
+﻿namespace ticket_purchaser;
+
+internal class Command
 {
     public string Title { get; set; }
 

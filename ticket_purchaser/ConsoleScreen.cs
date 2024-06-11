@@ -2,7 +2,7 @@
 {
     internal class ConsoleScreen
     {
-        private List<Option> Commands { get; set; } = [];
+        private List<Option> Commands { get; } = [];
         public string Title;
         public bool Cancelable = false;
         public bool AutoScroll = true;
